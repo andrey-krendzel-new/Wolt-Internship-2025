@@ -35,6 +35,13 @@ textarea {
   margin-top: -2%; 
 }
 
+.errorMessageGeneral {
+  background-color: red;
+  color: white;
+  border-color: white;
+  padding: 5%;
+}
+
 .container {
   display: flex;
   align-items: center;

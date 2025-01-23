@@ -5,7 +5,29 @@ function App() {
   const [cartValue, setCartValue] = useState(0);
   const [orderMinimum, setOrderMinimum] = useState(0);
   const [basePrice, setBasePrice] = useState(0);
-  const [distanceRanges, setDistanceRanges] = useState([{}]);
+  const [distanceRanges, setDistanceRanges] = useState([
+    {
+      "min": 0,
+      "max": 500,
+      "a": 0,
+      "b": 0,
+      "flag": null
+    },
+    {
+      "min": 500,
+      "max": 1000,
+      "a": 100,
+      "b": 1,
+      "flag": null
+    },
+    {
+      "min": 1000,
+      "max": 0,
+      "a": 0,
+      "b": 0,
+      "flag": null
+    }
+  ]);
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [deliveryDistance, setDeliveryDistance] = useState(0);
   const [venueSlug, setVenueSlug] = useState("home-assignment-venue-helsinki");
@@ -17,14 +39,13 @@ function App() {
   const [totalPrice, setTotalPrice] = useState(0);
   const [errorVenueSlug, setErrorVenueSlug] = useState("");
   const [errorCartValue, setErrorCartValue] = useState("");
-  const [errorCoordinates, setErrorCoordinates] = useState("");
   const [errorLatitude, setErrorLatitude] = useState("");
   const [errorLongitude, setErrorLongitude] = useState("");
-  const [errorFetch, setErrorFetch] = useState("");
+  const [errorGeneral, setErrorGeneral] = useState("");
 
   useEffect(() => {
     fetchData();
-  }, [venueSlug]);
+  }, []);
 
   //Fetching from backend
 
@@ -43,7 +64,7 @@ function App() {
         setVenueLatitude(data.venue_raw.location.coordinates[1]);
       })
       .catch((error) => {
-        setErrorFetch(error.toString());
+        setErrorGeneral(error.toString());
       });
 
     fetch(
@@ -60,14 +81,16 @@ function App() {
           data.venue_raw.delivery_specs.order_minimum_no_surcharge
         );
         setBasePrice(data.venue_raw.delivery_specs.delivery_pricing.base_price);
+        console.log("Base price: " + basePrice);
         setDistanceRanges(
           data.venue_raw.delivery_specs.delivery_pricing.distance_ranges
         );
-        console.log(distanceRanges);
       })
       .catch((error) => {
-        setErrorFetch(error.toString());
+        setErrorGeneral(error.toString());
       });
+
+    return true;
   };
 
   //Code to get the location
@@ -129,46 +152,43 @@ function App() {
       venueLatitude,
       venueLongitude
     );
-    console.log("User latitude: " + userLatitude);
-    console.log("User longitude: " + userLongitude);
-    console.log("Venue latitude: " + venueLatitude);
-    console.log("Venue longitude: " + venueLongitude);
-    console.log("Distance: " + distance);
-    setDeliveryDistance(distance);
+    console.log("User latitude " + userLatitude);
+    console.log("User longitude " + userLongitude);
+    console.log("Venue latitude " + venueLatitude);
+    console.log("Venue longitude " + venueLongitude);
+    // return distance;
+    return 1500; // Hardcoded value for testing
   };
 
-  type DistanceRange = {
-    min: number; // Minimum distance in the range
-    max: number; // Maximum distance in the range, 0 indicates no upper limit
-    a: number; // Custom property 'a'
-    b: number; // Custom property 'b'
-    flag: any; // Optional flag (type can be refined based on usage)
-  };
-
-  const placeDistanceWithinDistanceRanges = (
-    distanceRanges: DistanceRange[],
-    distance: number
-  ) => {
-    let a = 0;
-    let b = 0;
+  const placeDistanceWithinDistanceRanges = (distance: number) => {
+    let a = -1;
+    let b = -1;
 
     for (const range of distanceRanges) {
-      const { min, max, a: rangeA, b: rangeB } = range;
-
-      if (distance >= min && (distance <= max || max === 0)) {
-        a = rangeA;
-        b = rangeB;
-        break;
-      } else if (max === 0 && distance > min) {
-        setErrorFetch(
-          "The distance is greater than the maximum distance range"
-        );
+      if (distance >= range.min && distance < range.max) {
+        a = range.a;
+        b = range.b;
         break;
       }
     }
 
+    console.log(distanceRanges)
+
+    if (a === -1 && b === -1) {
+      setErrorGeneral("Error: Distance out of reach. Delivery price cannot be calculated.");
+    }
+
     return { a, b };
   };
+
+  const calculateSmallOrderSurcharge = () => {
+    if (cartValue * 100 < orderMinimum) {
+      let smallOrderSurcharge = orderMinimum - cartValue * 100;
+      return smallOrderSurcharge;
+    } else {
+      return 0; 
+    }
+  }; 
 
   // Handling inputs
   const handleGetLocation = async () => {
@@ -178,7 +198,7 @@ function App() {
       setUserLongitude(location.longitude);
     } catch (error: any) {
       console.error(error);
-      setErrorCoordinates(error);
+      setErrorGeneral(error);
     }
   };
 
@@ -238,22 +258,21 @@ function App() {
   const calculateDeliveryPrice = () => {
     //Only execute the code if formValidation is succesful
     if (formValidation()) {
-      handleCalculateDistance();
-      let { a, b } = placeDistanceWithinDistanceRanges(
-        distanceRanges as DistanceRange[],
-        deliveryDistance
-      ) || { a: 0, b: 0 };
-      console.log("Small order surcharge: " + smallOrderSurcharge);
-      if (cartValue * 100 < orderMinimum) {
-        let smallOrderSurchange = orderMinimum - cartValue * 100;
-        setSmallOrderSurcharge(smallOrderSurchange);
-      } else {
-        setSmallOrderSurcharge(0);
-      }
-      setDeliveryFee(basePrice + a + (b * deliveryDistance) / 10);
-      console.log("a " + a);
-      console.log("b " + b);
-      setTotalPrice(cartValue + deliveryFee + smallOrderSurcharge);
+        let distance = handleCalculateDistance();
+        console.log("Distance: " + distance);
+        let { a, b } = placeDistanceWithinDistanceRanges(distance);
+        //const deliveryFee = basePrice + a + (b * deliveryDistance) / 10;
+        console.log("a: " + a + " b: " + b);
+        let smallOrderSurcharge = calculateSmallOrderSurcharge();
+        console.log("Small order surcharge: " + smallOrderSurcharge);
+        let deliveryFee = basePrice + a + (b * distance / 10);
+        console.log("Delivery fee: " + deliveryFee);
+        let totalPrice = cartValue * 100 + deliveryFee + smallOrderSurcharge;
+        console.log("Total price: " + totalPrice);  
+        setDeliveryFee(deliveryFee);
+        setDeliveryDistance(distance);
+        setSmallOrderSurcharge(smallOrderSurcharge);
+        setTotalPrice(totalPrice);
     }
   };
 
@@ -285,7 +304,7 @@ function App() {
           step="0.01"
           onChange={onChangeCartValue}
         />
-        <p className="errorMessage">{errorCartValue}</p>
+        <p className="errorMessage" data-testid="error-cart-value">{errorCartValue}</p>
         <label>User latitude:</label>
         <input
           className="formInput"
@@ -293,9 +312,8 @@ function App() {
           name="userLatitude"
           value={userLatitude.toFixed(5)}
           data-testid="userLatitude"
-          disabled={true}
         />
-        <p className="errorMessage">{errorLatitude}</p>
+        <p className="errorMessage" data-testid="error-latitude">{errorLatitude}</p>
         <label>User longitude:</label>
         <input
           className="formInput"
@@ -303,9 +321,8 @@ function App() {
           name="userLongitude"
           value={userLongitude.toFixed(5)}
           data-testid="userLongitude"
-          disabled={true}
         />
-        <p className="errorMessage">{errorLongitude}</p>
+        <p className="errorMessage" data-testid="error-longitude">{errorLongitude}</p>
       </form>
       <div className="buttons">
         <button className="blue" onClick={() => handleGetLocation()}>
@@ -315,37 +332,36 @@ function App() {
           Calculate delivery price
         </button>
       </div>
-      <p className="errorMessage">{errorCoordinates}</p>
-      <p className="errorMessage">{errorFetch}</p>
+      {errorGeneral && <p className="errorMessageGeneral">{errorGeneral}</p>}
       <h3>Price breakdown</h3>
       <table>
         <tbody>
           <tr>
             <td>Cart Value:</td>
-            <td data-raw-value={cartValue * 100}>{cartValue.toFixed(2)} €</td>
+            <td data-raw-value={cartValue * 100} data-testid="cartResultValue">{cartValue.toFixed(2)} €</td>
           </tr>
           <tr>
             <td>Delivery Fee:</td>
-            <td data-raw-value={deliveryFee * 100}>
+            <td data-raw-value={deliveryFee * 100} data-testid="deliveryFee">
               {(deliveryFee / 100).toFixed(2)} €
             </td>
           </tr>
           <tr>
             <td>Delivery Distance:</td>
-            <td data-raw-value={deliveryDistance}>
+            <td data-raw-value={deliveryDistance} data-testid="deliveryDistance">
               {deliveryDistance.toFixed(0)} m
             </td>
           </tr>
           <tr>
             <td>Small Order Surcharge:</td>
-            <td data-raw-value={smallOrderSurcharge}>
-              {(smallOrderSurcharge / 100).toFixed(2)}€
+            <td data-raw-value={smallOrderSurcharge} data-testid="smallOrderSurcharge">
+              {(smallOrderSurcharge / 100).toFixed(2)} €
             </td>
           </tr>
           <tr>
             <td>Total Price:</td>
-            <td data-raw-value={totalPrice}>
-              {(totalPrice / 100).toFixed(2)}€
+            <td data-raw-value={totalPrice} data-testid="totalPrice">
+              {(totalPrice/100).toFixed(2)} €
             </td>
           </tr>
         </tbody>
