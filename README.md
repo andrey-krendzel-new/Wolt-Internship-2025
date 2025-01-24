@@ -11,6 +11,6 @@ npm install
 npm run dev
 ```
 
-Warning: distance is hardcoded to be 1500m in handleCalculateDistance().
+For testing/prototyping purposes: handleCalculateDistance(), edit the return from distance to the desired distance.
 
-If you wish the distance to be dynamically calculated between the user coordinates and the venue coordinates (all the functions are in place), uncomment the commented line.
+I.e. 1500
