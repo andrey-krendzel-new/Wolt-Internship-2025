@@ -331,6 +331,7 @@ function App() {
           value={userLatitude}
           onChange={onChangeUserLatitude}
           data-testid="userLatitude"
+          disabled={true}
         />
         <p className="errorMessage" data-testid="error-latitude">
           {errorLatitude}
@@ -343,6 +344,7 @@ function App() {
           value={userLongitude}
           onChange={onChangeUserLongitude}
           data-testid="userLongitude"
+          disabled={true}
         />
         <p className="errorMessage" data-testid="error-longitude">
           {errorLongitude}
