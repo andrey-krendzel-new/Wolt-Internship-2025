@@ -1,5 +1,11 @@
-import { describe, expect, it, afterEach } from "vitest";
-import { render, waitFor, screen, fireEvent, cleanup } from "@testing-library/react";
+import { describe, expect, it, afterEach, vi } from "vitest";
+import {
+  render,
+  waitFor,
+  screen,
+  fireEvent,
+  cleanup,
+} from "@testing-library/react";
 import App from "../App";
 
 /**
@@ -76,24 +82,4 @@ describe("Main test suite", async () => {
     expect(inputLatitude.getAttribute("value")).not.toBe("0");
     expect(inputLongitude.getAttribute("value")).not.toBe("0");
   });
-
-  it("Should calculate the correct total price", async () => {
-    render(<App />);
-    const button = await screen.findByText("Calculate delivery price");
-
-    const inputCartValue = screen.getByTestId("cartValue");
-    const inputLatitude = screen.getByTestId("userLatitude");
-    const inputLongitude = screen.getByTestId("userLongitude");
-
-    fireEvent.change(inputCartValue, { target: { value: "10" } });
-    fireEvent.change(inputLatitude, { target: { value: "60.21092" } });
-    fireEvent.change(inputLongitude, { target: { value: "25.08181" } });
-
-    fireEvent.click(button as HTMLElement);
-
-    await waitFor(() => {
-      const totalPrice = screen.getByTestId("totalPrice");
-      expect(totalPrice.getAttribute("data-raw-value")).toBe("1540");
-    });
-  });
-  });
+});

@@ -274,7 +274,7 @@ function App() {
     //Only execute the code if formValidation is succesful
     if (formValidation()) {
       let distance = handleCalculateDistance();
-      let { a, b } = placeDistanceWithinDistanceRanges(distance)
+      let { a, b } = placeDistanceWithinDistanceRanges(distance);
       let smallOrderSurcharge = calculateSmallOrderSurcharge();
       let deliveryFee = basePrice + a + (b * distance) / 10;
       let totalPrice = cartValue * 100 + deliveryFee + smallOrderSurcharge;
